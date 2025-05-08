@@ -25,7 +25,7 @@ with st.sidebar.expander("▶️ アプリの使い方", expanded=True):
 ---
 
 ### 🎨 タグの変換ルール（背景色）
-下記で自由に設定できます。
+下記で最大10件まで自由に設定できます。
 
 ---
 
@@ -34,20 +34,20 @@ with st.sidebar.expander("▶️ アプリの使い方", expanded=True):
 - 各日付1行、項目ごとにタグが付きます
 """)
 
-# --- サイドバー：色とタグ対応設定 ---
-st.sidebar.markdown("### 🎨 色とタグの対応設定")
+# --- サイドバー：色とタグ対応設定（最大10件） ---
+st.sidebar.markdown("### 🎨 色とタグの対応設定（最大10件）")
 
 tag_options = ["*日付", "*数値", "*入力", "*実績", "*選択", "*送信", "*日時"]
-color_tag_defaults = {
-    "FFFF00": "*日付",    # 黄色
-    "00B0F0": "*数値",    # 青
-    "00FF00": "*入力",    # 緑
-    "BFBFBF": "*実績",    # グレー
-}
+default_colors = ["FFFF00", "00B0F0", "00FF00", "BFBFBF", "FF0000", "C0C0C0", "800080", "FFA500", "008000", "000000"]
+default_tags = ["*日付", "*数値", "*入力", "*実績", "*選択", "*送信", "*日時", "*入力", "*入力", "*入力"]
 
 user_mapping = {}
-for color_hex, default_tag in color_tag_defaults.items():
-    # 色のサンプル表示
+
+for i in range(10):
+    color_hex = st.sidebar.text_input(f"{i+1}. 背景色コード（6桁 HEX）", value=default_colors[i], key=f"color_{i}")
+    color_hex = color_hex.upper().strip().replace("#", "")[:6]
+
+    # 色のプレビュー付き表示
     st.sidebar.markdown(
         f"""
         <div style='display:flex; align-items:center; margin-bottom:4px'>
@@ -57,13 +57,14 @@ for color_hex, default_tag in color_tag_defaults.items():
         """,
         unsafe_allow_html=True
     )
+
     tag = st.sidebar.selectbox(
         f"→ 上記の色に対応するタグ",
         tag_options,
-        index=tag_options.index(default_tag),
-        key=color_hex
+        index=tag_options.index(default_tags[i]),
+        key=f"tag_{i}"
     )
-    user_mapping[color_hex.upper()] = tag
+    user_mapping[color_hex] = tag
 
 # --- メイン処理 ---
 uploaded_file = st.file_uploader("点検表Excelをアップロード", type=["xlsx"])
