@@ -5,6 +5,7 @@ from io import BytesIO
 from datetime import datetime, timedelta
 from tag_utils import detect_tag_from_cell, month_to_daily_df
 
+st.set_page_config(page_title="XC-GATE帳票変換", layout="wide")
 st.title("📋 Excel点検表 → XC-GATE帳票変換アプリ")
 
 # --- サイドバー：取扱説明 ---
@@ -24,7 +25,7 @@ with st.sidebar.expander("▶️ アプリの使い方", expanded=True):
 ---
 
 ### 🎨 タグの変換ルール（背景色）
-以下で自由に変更可能
+下記で自由に設定できます。
 
 ---
 
@@ -33,23 +34,34 @@ with st.sidebar.expander("▶️ アプリの使い方", expanded=True):
 - 各日付1行、項目ごとにタグが付きます
 """)
 
-# --- サイドバー：色とタグ対応のカスタマイズ ---
+# --- サイドバー：色とタグ対応設定 ---
 st.sidebar.markdown("### 🎨 色とタグの対応設定")
 
-default_mapping = {
+tag_options = ["*日付", "*数値", "*入力", "*実績", "*選択", "*送信", "*日時"]
+color_tag_defaults = {
     "FFFF00": "*日付",    # 黄色
     "00B0F0": "*数値",    # 青
     "00FF00": "*入力",    # 緑
     "BFBFBF": "*実績",    # グレー
 }
 
-tag_options = ["*日付", "*数値", "*入力", "*実績", "*選択", "*送信", "*日時"]
 user_mapping = {}
-for color_hex, default_tag in default_mapping.items():
+for color_hex, default_tag in color_tag_defaults.items():
+    # 色のサンプル表示
+    st.sidebar.markdown(
+        f"""
+        <div style='display:flex; align-items:center; margin-bottom:4px'>
+            <div style='width:20px; height:20px; background-color:#{color_hex}; border:1px solid #ccc; margin-right:8px'></div>
+            <span style='font-weight:bold'>背景色 #{color_hex}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     tag = st.sidebar.selectbox(
-        f"背景色 {color_hex} に対応するタグ",
+        f"→ 上記の色に対応するタグ",
         tag_options,
-        index=tag_options.index(default_tag)
+        index=tag_options.index(default_tag),
+        key=color_hex
     )
     user_mapping[color_hex.upper()] = tag
 
