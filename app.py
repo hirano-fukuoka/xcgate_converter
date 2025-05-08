@@ -5,10 +5,9 @@ from io import BytesIO
 from datetime import datetime, timedelta
 from tag_utils import detect_tag_from_cell, month_to_daily_df
 
-# タイトル
 st.title("📋 Excel点検表 → XC-GATE帳票変換アプリ")
 
-# サイドバーに取扱説明
+# --- サイドバー：取扱説明 ---
 st.sidebar.title("ℹ️ 取扱説明")
 with st.sidebar.expander("▶️ アプリの使い方", expanded=True):
     st.markdown("""
@@ -25,32 +24,36 @@ with st.sidebar.expander("▶️ アプリの使い方", expanded=True):
 ---
 
 ### 🎨 タグの変換ルール（背景色）
-| 背景色 | 判定されるタグ |
-|--------|----------------|
-| 黄色   | `*日付`（点検日） |
-| 青色   | `*数値`（数値入力） |
-| 緑色   | `*入力`（文字入力） |
-| グレー | `*実績`（表示項目） |
-
----
-
-### 🧮 関数挿入（例）
-- `=IF(B2="NG", "要対応", "")` → 自動判定
-- `=NOW()` → 記録時間に使用
+以下で自由に変更可能
 
 ---
 
 ### 📤 出力
 - 出力形式：`.xlsx`（XC-GATE帳票形式）
 - 各日付1行、項目ごとにタグが付きます
-
----
-
-### 🚀 よく使うタグ（自動で優先）
-- `*入力`、`*数値`、`*実績`、`*選択`、`*送信`、`*日時`
 """)
 
-# メイン処理
+# --- サイドバー：色とタグ対応のカスタマイズ ---
+st.sidebar.markdown("### 🎨 色とタグの対応設定")
+
+default_mapping = {
+    "FFFF00": "*日付",    # 黄色
+    "00B0F0": "*数値",    # 青
+    "00FF00": "*入力",    # 緑
+    "BFBFBF": "*実績",    # グレー
+}
+
+tag_options = ["*日付", "*数値", "*入力", "*実績", "*選択", "*送信", "*日時"]
+user_mapping = {}
+for color_hex, default_tag in default_mapping.items():
+    tag = st.sidebar.selectbox(
+        f"背景色 {color_hex} に対応するタグ",
+        tag_options,
+        index=tag_options.index(default_tag)
+    )
+    user_mapping[color_hex.upper()] = tag
+
+# --- メイン処理 ---
 uploaded_file = st.file_uploader("点検表Excelをアップロード", type=["xlsx"])
 if uploaded_file:
     wb = load_workbook(uploaded_file, data_only=True)
@@ -61,10 +64,10 @@ if uploaded_file:
     st.dataframe(df_raw)
 
     st.subheader("🗓️ 日次＋タグ付き帳票")
-    df_daily = month_to_daily_df(ws)
+    df_daily = month_to_daily_df(ws, user_mapping)
     st.dataframe(df_daily)
 
-    # Excel帳票の生成
+    # Excel帳票出力
     out_wb = Workbook()
     out_ws = out_wb.active
     out_ws.title = "XC-GATE帳票"
