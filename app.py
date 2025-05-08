@@ -1,43 +1,33 @@
-from openpyxl.styles import PatternFill
+import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
+from openpyxl import load_workbook, Workbook
+from io import BytesIO
+from tag_utils import detect_tag_from_cell, month_to_daily_df
 
-def detect_tag_from_cell(cell):
-    """背景色＋値ベースでタグを自動判定"""
-    if not cell.fill or not isinstance(cell.fill, PatternFill):
-        return "*入力 名前:'{}'".format(cell.value or "項目")
-    
-    rgb = cell.fill.fgColor.rgb if cell.fill.patternType == "solid" else None
-    value = str(cell.value).lower() if cell.value else ""
+st.title("📋 Excel点検表 → XC-GATE帳票変換")
 
-    if rgb in ["FFFFFF00", "FFFF00"] or "日付" in value:
-        return "*日付 名前:'点検日'"
-    elif rgb == "FF00B0F0":
-        return f"*数値 名前:'{cell.value}'"
-    elif rgb == "FF00FF00":
-        return f"*入力 名前:'{cell.value}'"
-    elif rgb == "FFBFBFBF" or "実績" in value:
-        return f"*実績 名前:'{cell.value}'"
-    elif "選択" in value:
-        return f"*選択 名前:'{cell.value}'"
-    elif "送信" in value:
-        return "*送信 名前:'実績送信'"
-    else:
-        return f"*入力 名前:'{cell.value}'"
+uploaded_file = st.file_uploader("点検表Excelをアップロード", type=["xlsx"])
+if uploaded_file:
+    wb = load_workbook(uploaded_file, data_only=True)
+    ws = wb.active
 
-def month_to_daily_df(ws):
-    """1列目: 点検項目, 2列目以降: 各日 → DataFrameに変換"""
-    item_names = [cell.value for cell in ws['A'] if cell.value]
-    year = datetime.today().year
-    month = datetime.today().month
-    days = (datetime(year, month + 1, 1) - timedelta(days=1)).day
+    st.subheader("元データプレビュー")
+    df_raw = pd.DataFrame([[cell.value for cell in row] for row in ws.iter_rows()])
+    st.dataframe(df_raw)
 
-    data = []
-    for day in range(1, days + 1):
-        date_str = f"{year}/{month:02}/{day:02}"
-        row = {"点検日": f"*日付 名前:'点検日' 初期値:'{date_str}'"}
-        for item in item_names:
-            row[item] = f"*入力 名前:'{item}'"
-        data.append(row)
+    st.subheader("日次＋タグ付き帳票")
+    df_daily = month_to_daily_df(ws)
+    st.dataframe(df_daily)
 
-    return pd.DataFrame(data)
+    # 出力ブック作成
+    out_wb = Workbook()
+    out_ws = out_wb.active
+    out_ws.title = "XC-GATE帳票"
+
+    for i, row in df_daily.iterrows():
+        for j, val in enumerate(row):
+            out_ws.cell(row=i+1, column=j+1, value=val)
+
+    output = BytesIO()
+    out_wb.save(output)
+    st.download_button("📥 XC-GATE帳票をダウンロード", data=output.getvalue(), file_name="xcgate_output.xlsx")
